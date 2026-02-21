@@ -20,4 +20,4 @@ services:
       DB_PORT: 5432
       DB_USERNAME: postgres
       DB_PASSWORD: password
-      DB_NAME: stock_db
+      DB_SCHEMA: stock_service
