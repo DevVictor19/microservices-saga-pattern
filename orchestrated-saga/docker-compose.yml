@@ -1,9 +1,4 @@
 services:
-  stock-service:
-    container_name: stock-service
-    build: ./stock-service
-    ports:
-      - "3000:3000"
   database:
     container_name: postgres
     image: postgres:18
@@ -12,3 +7,17 @@ services:
       POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
+
+  stock-service:
+    container_name: stock-service
+    build: ./stock-service
+    ports:
+      - "3000:3000"
+    depends_on:
+      - database
+    environment:
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_NAME: stock_db
