@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CoreModule } from './modules/core/core.module';
 import { Item, ItemDelivery, ItemReservation } from './modules/core/entities';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -13,6 +14,12 @@ import { Item, ItemDelivery, ItemReservation } from './modules/core/entities';
       password: process.env.DB_PASSWORD || 'password',
       schema: process.env.DB_SCHEMA || 'stock_service',
       entities: [Item, ItemReservation, ItemDelivery],
+    }),
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: Number(process.env.REDIS_PORT) || 6379,
+      },
     }),
     CoreModule,
   ],
