@@ -4,10 +4,11 @@ import { Item } from './item.entity';
 
 @Entity()
 export class ItemDelivery extends BaseEntity {
-  @JoinColumn({ name: 'item_id' })
+  @Column({ name: 'item_id', type: 'int', nullable: false })
   itemId: number;
 
   @ManyToOne(() => Item, { nullable: false })
+  @JoinColumn({ name: 'item_id' })
   item: Item;
 
   @Column({ name: 'user_uuid', type: 'uuid', nullable: false })
