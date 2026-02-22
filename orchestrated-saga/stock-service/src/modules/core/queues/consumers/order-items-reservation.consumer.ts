@@ -3,7 +3,6 @@ import { Job } from 'bullmq';
 import { OrderItem } from '../../value-objects';
 import { ItemReservationService } from '../../services';
 import { Logger } from '@nestjs/common';
-import { OrderItemsReservationResultPublisher } from '../publishers';
 
 export const ORDER_ITEMS_RESERVATION_QUEUE = 'order-items-reservation-queue';
 
@@ -18,10 +17,7 @@ export interface OrderItemsReservationPayload {
 export class OrderItemsReservationConsumer extends WorkerHost {
   private readonly logger = new Logger(OrderItemsReservationConsumer.name);
 
-  constructor(
-    private readonly itemReservationService: ItemReservationService,
-    private readonly orderItemsReservationResultPublisher: OrderItemsReservationResultPublisher,
-  ) {
+  constructor(private readonly itemReservationService: ItemReservationService) {
     super();
   }
 
