@@ -8,6 +8,12 @@ services:
     ports:
       - "5432:5432"
 
+  redis:
+    container_name: redis
+    image: redis:8
+    ports:
+      - "6379:6379"
+
   stock-service:
     container_name: stock-service
     build: ./stock-service
@@ -15,9 +21,12 @@ services:
       - "3000:3000"
     depends_on:
       - database
+      - redis
     environment:
       DB_HOST: database
       DB_PORT: 5432
       DB_USERNAME: postgres
       DB_PASSWORD: password
       DB_SCHEMA: stock_service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
