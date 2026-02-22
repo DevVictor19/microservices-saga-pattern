@@ -30,3 +30,20 @@ services:
       DB_SCHEMA: stock_service
       REDIS_HOST: redis
       REDIS_PORT: 6379
+
+  orders-service:
+    container_name: orders-service
+    build: ./orders-service
+    ports:
+      - "3001:3000"
+    depends_on:
+      - database
+      - redis
+    environment:
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_SCHEMA: orders_service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
