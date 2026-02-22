@@ -27,11 +27,11 @@ export class OrderItemsReservationConsumer extends WorkerHost {
 
   async process(job: Job<OrderItemsReservationPayload>): Promise<void> {
     try {
-      this.logger.debug(
-        `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
-      );
-
       const data = job.data;
+
+      this.logger.debug(
+        `Processing reservation for order ${data.orderUuid}: ${JSON.stringify(data)}`,
+      );
 
       await this.itemReservationService.reserveItems(data);
     } catch (error) {
