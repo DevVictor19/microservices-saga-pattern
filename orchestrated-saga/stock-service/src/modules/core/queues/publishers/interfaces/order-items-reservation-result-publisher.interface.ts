@@ -13,6 +13,7 @@ export type ReserveItemsResult =
 export interface OrderItemsReservationResultPayload {
   userUuid: string;
   orderUuid: string;
+  paymentMethodUuid: string;
   result: ReserveItemsResult;
 }
 
