@@ -5,6 +5,7 @@ import {
   ReserveItemsOutput,
 } from './interfaces';
 import { Repository } from 'typeorm';
+import { randomUUID } from 'node:crypto';
 import { Item, ItemReservation } from '../entities';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -46,6 +47,7 @@ export class ItemReservationRepositoryImpl implements ItemReservationRepository 
         const reservation = queryRunner.manager
           .getRepository(ItemReservation)
           .create({
+            uuid: randomUUID(),
             itemId: item.id,
             userUuid,
             orderUuid,
