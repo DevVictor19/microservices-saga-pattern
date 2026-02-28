@@ -1,3 +1,4 @@
+import { ItemReservation } from '../../entities';
 import { OrderItem } from '../../value-objects';
 
 export interface ReserveItemsInput {
@@ -18,4 +19,5 @@ export type ReserveItemsOutput =
 
 export abstract class ItemReservationRepository {
   abstract reserveItems(input: ReserveItemsInput): Promise<ReserveItemsOutput>;
+  abstract findManyByOrderUuid(orderUuid: string): Promise<ItemReservation[]>;
 }

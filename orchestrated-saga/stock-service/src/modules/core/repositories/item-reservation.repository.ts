@@ -72,4 +72,8 @@ export class ItemReservationRepositoryImpl implements ItemReservationRepository 
       await queryRunner.release();
     }
   }
+
+  async findManyByOrderUuid(orderUuid: string): Promise<ItemReservation[]> {
+    return this.repository.find({ where: { orderUuid } });
+  }
 }
