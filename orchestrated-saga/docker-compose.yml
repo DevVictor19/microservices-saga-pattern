@@ -67,3 +67,20 @@ services:
       DB_SCHEMA: payments_service
       REDIS_HOST: redis
       REDIS_PORT: 6379
+
+  loyalty-service:
+    container_name: loyalty-service
+    build: ./loyalty-service
+    ports:
+      - "3003:3000"
+    depends_on:
+      - database
+    environment:
+      PORT: 3000
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_SCHEMA: loyalty_service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
