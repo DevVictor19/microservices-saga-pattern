@@ -23,13 +23,14 @@ export class ItemReservationRepositoryImpl implements ItemReservationRepository 
     await queryRunner.startTransaction();
 
     try {
+      const itemRepository = queryRunner.manager.getRepository(Item);
+
       const { userUuid, orderUuid, items } = input;
       const reservationUuids: string[] = [];
       const failedItems = [];
 
       for (const orderItem of items) {
-        const item = await queryRunner.manager
-          .getRepository(Item)
+        const item = await itemRepository
           .createQueryBuilder('item')
           .where('item.uuid = :uuid', { uuid: orderItem.itemUuid })
           .setLock('pessimistic_write')
@@ -40,9 +41,11 @@ export class ItemReservationRepositoryImpl implements ItemReservationRepository 
           continue;
         }
 
-        await queryRunner.manager
-          .getRepository(Item)
-          .decrement({ id: item.id }, 'quantityInStock', orderItem.quantity);
+        await itemRepository.decrement(
+          { id: item.id },
+          'quantityInStock',
+          orderItem.quantity,
+        );
 
         const reservation = queryRunner.manager
           .getRepository(ItemReservation)
