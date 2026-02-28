@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { PaymentService, ProcessPaymentInput } from './interfaces';
 import { PaymentRepository } from '../repositories';
 import { Payment, PaymentStatus } from '../entities';
-import { OrderPaymentResultPublisher } from '../queues';
+import { OrderPaymentResultPublisher } from '../queues/publishers/interfaces';
 
 @Injectable()
 export class PaymentServiceImpl implements PaymentService {
