@@ -18,6 +18,7 @@ export type ReserveItemsOutput =
     };
 
 export abstract class ItemReservationRepository {
+  abstract undoReservation(orderUuid: string): Promise<void>;
   abstract reserveItems(input: ReserveItemsInput): Promise<ReserveItemsOutput>;
   abstract findManyByOrderUuid(orderUuid: string): Promise<ItemReservation[]>;
 }

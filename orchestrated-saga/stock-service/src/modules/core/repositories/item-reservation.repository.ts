@@ -16,6 +16,37 @@ export class ItemReservationRepositoryImpl implements ItemReservationRepository 
     private readonly repository: Repository<ItemReservation>,
   ) {}
 
+  async undoReservation(orderUuid: string): Promise<void> {
+    await this.repository.manager.transaction(async (manager) => {
+      const reservations = await manager.find(ItemReservation, {
+        where: { orderUuid },
+      });
+
+      if (reservations.length === 0) {
+        return;
+      }
+
+      const itemsToIncrement = reservations.map((reservation) => ({
+        itemId: reservation.itemId,
+        quantity: reservation.quantity,
+      }));
+
+      const itemRepository = manager.getRepository(Item);
+
+      for (const { itemId, quantity } of itemsToIncrement) {
+        await itemRepository.increment(
+          { id: itemId },
+          'quantityInStock',
+          quantity,
+        );
+      }
+
+      await manager.delete(ItemReservation, {
+        orderUuid,
+      });
+    });
+  }
+
   async reserveItems(input: ReserveItemsInput): Promise<ReserveItemsOutput> {
     const queryRunner = this.repository.manager.connection.createQueryRunner();
 
