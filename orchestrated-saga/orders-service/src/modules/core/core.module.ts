@@ -4,11 +4,21 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   ORDER_ITEMS_RESERVATION_QUEUE,
   ORDER_ITEMS_RESERVATION_RESULT_QUEUE,
+  ORDER_ITEMS_UNDO_RESERVATION_QUEUE,
+  ORDER_PAYMENT_QUEUE,
+  ORDER_RECEIVE_LOYALTY_POINTS_QUEUE,
+  ORDER_SEND_TO_DELIVER_QUEUE,
   OrderItemsReservationPublisher,
   OrderItemsReservationPublisherImpl,
   OrderItemsReservationResultConsumer,
+  OrderItemsUndoReservationPublisher,
+  OrderItemsUndoReservationPublisherImpl,
   OrderPaymentPublisher,
   OrderPaymentPublisherImpl,
+  OrderReceiveLoyaltyPointsPublisher,
+  OrderReceiveLoyaltyPointsPublisherImpl,
+  OrderSendToDeliverPublisher,
+  OrderSendToDeliverPublisherImpl,
 } from './queues';
 import { Order, OrderItem } from './entities';
 import { OrderRepository, OrderRepositoryImpl } from './repositories';
@@ -23,6 +33,18 @@ import { OrdersController } from './controllers';
     }),
     BullModule.registerQueue({
       name: ORDER_ITEMS_RESERVATION_RESULT_QUEUE,
+    }),
+    BullModule.registerQueue({
+      name: ORDER_PAYMENT_QUEUE,
+    }),
+    BullModule.registerQueue({
+      name: ORDER_ITEMS_UNDO_RESERVATION_QUEUE,
+    }),
+    BullModule.registerQueue({
+      name: ORDER_RECEIVE_LOYALTY_POINTS_QUEUE,
+    }),
+    BullModule.registerQueue({
+      name: ORDER_SEND_TO_DELIVER_QUEUE,
     }),
   ],
   controllers: [OrdersController],
@@ -42,6 +64,18 @@ import { OrdersController } from './controllers';
     {
       provide: OrderPaymentPublisher,
       useClass: OrderPaymentPublisherImpl,
+    },
+    {
+      provide: OrderItemsUndoReservationPublisher,
+      useClass: OrderItemsUndoReservationPublisherImpl,
+    },
+    {
+      provide: OrderReceiveLoyaltyPointsPublisher,
+      useClass: OrderReceiveLoyaltyPointsPublisherImpl,
+    },
+    {
+      provide: OrderSendToDeliverPublisher,
+      useClass: OrderSendToDeliverPublisherImpl,
     },
     OrderItemsReservationResultConsumer,
   ],
