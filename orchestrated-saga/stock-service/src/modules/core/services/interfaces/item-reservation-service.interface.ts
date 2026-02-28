@@ -7,6 +7,12 @@ export interface ReserveItemsInput {
   items: OrderItem[];
 }
 
+export interface UndoReservationInput {
+  userUuid: string;
+  orderUuid: string;
+}
+
 export abstract class ItemReservationService {
   abstract reserveItems(input: ReserveItemsInput): Promise<void>;
+  abstract undoReservation(input: UndoReservationInput): Promise<void>;
 }
