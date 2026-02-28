@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CoreModule } from './modules/core/core.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
+import { Payment } from './modules/core/entities';
 
 @Module({
   imports: [
@@ -12,7 +13,7 @@ import { BullModule } from '@nestjs/bullmq';
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'password',
       schema: process.env.DB_SCHEMA || 'payments_service',
-      entities: [],
+      entities: [Payment],
     }),
     BullModule.forRoot({
       connection: {
