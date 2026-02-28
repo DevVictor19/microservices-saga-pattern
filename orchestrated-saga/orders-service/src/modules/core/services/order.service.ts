@@ -83,6 +83,7 @@ export class OrderServiceImpl implements OrderService {
       userUuid: input.userUuid,
       orderUuid: input.orderUuid,
       paymentMethodUuid: input.paymentMethodUuid,
+      totalPrice: order.totalPrice,
     });
 
     await this.orderRepository.updateStatus(
