@@ -1,1 +1,1 @@
-export * from './oder-payment-result-publisher.interface';
+export * from './order-payment-result-publisher.interface';
