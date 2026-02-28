@@ -31,14 +31,10 @@ export class ItemReservationRepositoryImpl implements ItemReservationRepository 
         quantity: reservation.quantity,
       }));
 
-      const itemRepository = manager.getRepository(Item);
-
       for (const { itemId, quantity } of itemsToIncrement) {
-        await itemRepository.increment(
-          { id: itemId },
-          'quantityInStock',
-          quantity,
-        );
+        await manager
+          .getRepository(Item)
+          .increment({ id: itemId }, 'quantityInStock', quantity);
       }
 
       await manager.delete(ItemReservation, {
@@ -54,14 +50,13 @@ export class ItemReservationRepositoryImpl implements ItemReservationRepository 
     await queryRunner.startTransaction();
 
     try {
-      const itemRepository = queryRunner.manager.getRepository(Item);
-
       const { userUuid, orderUuid, items } = input;
       const reservationUuids: string[] = [];
       const failedItems = [];
 
       for (const orderItem of items) {
-        const item = await itemRepository
+        const item = await queryRunner.manager
+          .getRepository(Item)
           .createQueryBuilder('item')
           .where('item.uuid = :uuid', { uuid: orderItem.itemUuid })
           .setLock('pessimistic_write')
@@ -72,11 +67,9 @@ export class ItemReservationRepositoryImpl implements ItemReservationRepository 
           continue;
         }
 
-        await itemRepository.decrement(
-          { id: item.id },
-          'quantityInStock',
-          orderItem.quantity,
-        );
+        await queryRunner.manager
+          .getRepository(Item)
+          .decrement({ id: item.id }, 'quantityInStock', orderItem.quantity);
 
         const reservation = queryRunner.manager
           .getRepository(ItemReservation)
