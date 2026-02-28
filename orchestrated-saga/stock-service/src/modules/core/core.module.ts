@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Item, ItemDelivery, ItemReservation } from './entities';
 import {
+  ItemRepository,
+  ItemRepositoryImpl,
   ItemReservationRepository,
   ItemReservationRepositoryImpl,
 } from './repositories';
@@ -10,9 +12,11 @@ import { BullModule } from '@nestjs/bullmq';
 import {
   ORDER_ITEMS_RESERVATION_QUEUE,
   ORDER_ITEMS_RESERVATION_RESULT_QUEUE,
+  ORDER_ITEMS_UNDO_RESERVATION_QUEUE,
   OrderItemsReservationConsumer,
   OrderItemsReservationResultPublisher,
   OrderItemsReservationResultPublisherImpl,
+  OrderItemsUndoReservationConsumer,
 } from './queues';
 
 @Module({
@@ -24,6 +28,9 @@ import {
     BullModule.registerQueue({
       name: ORDER_ITEMS_RESERVATION_RESULT_QUEUE,
     }),
+    BullModule.registerQueue({
+      name: ORDER_ITEMS_UNDO_RESERVATION_QUEUE,
+    }),
   ],
   providers: [
     {
@@ -31,10 +38,15 @@ import {
       useClass: ItemReservationRepositoryImpl,
     },
     {
+      provide: ItemRepository,
+      useClass: ItemRepositoryImpl,
+    },
+    {
       provide: ItemReservationService,
       useClass: ItemReservationServiceImpl,
     },
     OrderItemsReservationConsumer,
+    OrderItemsUndoReservationConsumer,
     {
       provide: OrderItemsReservationResultPublisher,
       useClass: OrderItemsReservationResultPublisherImpl,
