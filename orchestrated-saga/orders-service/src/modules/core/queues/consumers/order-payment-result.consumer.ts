@@ -33,6 +33,7 @@ export class OrderPaymentResultConsumer extends WorkerHost {
         this.logger.error(
           `Error processing payment result for order ${job.data.orderUuid}: ${error.message}`,
         );
+        throw error;
       } else {
         this.logger.error(
           `Unknown error processing payment result for order ${job.data.orderUuid}`,

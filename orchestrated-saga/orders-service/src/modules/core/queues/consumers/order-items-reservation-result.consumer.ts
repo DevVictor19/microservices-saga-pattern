@@ -48,6 +48,7 @@ export class OrderItemsReservationResultConsumer extends WorkerHost {
         this.logger.error(
           `Error processing reservation result for order ${job.data.orderUuid}: ${error.message}`,
         );
+        throw error;
       } else {
         this.logger.error(
           `Unknown error processing reservation result for order ${job.data.orderUuid}`,
