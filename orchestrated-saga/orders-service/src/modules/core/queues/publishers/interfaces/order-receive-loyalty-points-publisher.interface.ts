@@ -1,6 +1,7 @@
 export interface ReceiveLoyaltyPointsPayload {
   userUuid: string;
   orderUuid: string;
+  totalPrice: number;
 }
 
 export abstract class OrderReceiveLoyaltyPointsPublisher {

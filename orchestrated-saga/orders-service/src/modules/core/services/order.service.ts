@@ -147,6 +147,7 @@ export class OrderServiceImpl implements OrderService {
       this.orderReceiveLoyaltyPointsPublisher.publish({
         userUuid: order.userUuid,
         orderUuid: order.uuid,
+        totalPrice: order.totalPrice,
       }),
     ]);
   }
