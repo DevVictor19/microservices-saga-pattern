@@ -2,8 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Item, ItemDelivery, ItemReservation } from './entities';
 import {
-  ItemRepository,
-  ItemRepositoryImpl,
   ItemReservationRepository,
   ItemReservationRepositoryImpl,
 } from './repositories';
@@ -36,10 +34,6 @@ import {
     {
       provide: ItemReservationRepository,
       useClass: ItemReservationRepositoryImpl,
-    },
-    {
-      provide: ItemRepository,
-      useClass: ItemRepositoryImpl,
     },
     {
       provide: ItemReservationService,
