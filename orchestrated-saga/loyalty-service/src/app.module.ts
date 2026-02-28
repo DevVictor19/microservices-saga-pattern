@@ -2,6 +2,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CoreModule } from './modules/core/core.module';
+import { LoyaltyPoint } from './modules/core/entities';
 
 @Module({
   imports: [
@@ -12,7 +13,7 @@ import { CoreModule } from './modules/core/core.module';
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'password',
       schema: process.env.DB_SCHEMA || 'loyalty_service',
-      entities: [],
+      entities: [LoyaltyPoint],
     }),
     BullModule.forRoot({
       connection: {
