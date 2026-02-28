@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { OrderService } from '../../services';
 
-export type ReserveItemsResult =
+export type ItemsReservationResult =
   | {
       success: true;
       reservationUuids: string[];
@@ -20,7 +20,7 @@ export interface OrderItemsReservationResultPayload {
   userUuid: string;
   orderUuid: string;
   paymentMethodUuid: string;
-  result: ReserveItemsResult;
+  result: ItemsReservationResult;
 }
 
 export const ORDER_ITEMS_RESERVATION_RESULT_QUEUE =

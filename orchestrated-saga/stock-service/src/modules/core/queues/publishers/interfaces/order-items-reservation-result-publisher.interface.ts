@@ -1,6 +1,6 @@
 import { OrderItem } from 'src/modules/core/value-objects';
 
-export type ReserveItemsResult =
+export type ItemsReservationResult =
   | {
       success: true;
       reservationUuids: string[];
@@ -14,7 +14,7 @@ export interface OrderItemsReservationResultPayload {
   userUuid: string;
   orderUuid: string;
   paymentMethodUuid: string;
-  result: ReserveItemsResult;
+  result: ItemsReservationResult;
 }
 
 export abstract class OrderItemsReservationResultPublisher {

@@ -1,4 +1,4 @@
-export type ReserveItemsResult =
+export type ItemsReservationResult =
   | {
       success: true;
       reservationUuids: string[];
@@ -15,7 +15,7 @@ export interface ProcessReservationResultInput {
   userUuid: string;
   orderUuid: string;
   paymentMethodUuid: string;
-  result: ReserveItemsResult;
+  result: ItemsReservationResult;
 }
 
 export abstract class OrderService {
