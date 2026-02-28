@@ -7,6 +7,8 @@ import {
   OrderItemsReservationPublisher,
   OrderItemsReservationPublisherImpl,
   OrderItemsReservationResultConsumer,
+  OrderPaymentPublisher,
+  OrderPaymentPublisherImpl,
 } from './queues';
 import { Order, OrderItem } from './entities';
 import { OrderRepository, OrderRepositoryImpl } from './repositories';
@@ -36,6 +38,10 @@ import { OrdersController } from './controllers';
     {
       provide: OrderItemsReservationPublisher,
       useClass: OrderItemsReservationPublisherImpl,
+    },
+    {
+      provide: OrderPaymentPublisher,
+      useClass: OrderPaymentPublisherImpl,
     },
     OrderItemsReservationResultConsumer,
   ],
