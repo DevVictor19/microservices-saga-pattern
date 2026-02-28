@@ -49,3 +49,21 @@ services:
       DB_SCHEMA: orders_service
       REDIS_HOST: redis
       REDIS_PORT: 6379
+
+  payments-service:
+    container_name: payments-service
+    build: ./payments-service
+    ports:
+      - "3002:3000"
+    depends_on:
+      - database
+      - redis
+    environment:
+      PORT: 3000
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_SCHEMA: payments_service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
