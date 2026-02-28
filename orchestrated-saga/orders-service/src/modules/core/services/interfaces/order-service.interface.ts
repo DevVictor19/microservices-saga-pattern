@@ -18,6 +18,14 @@ export interface ProcessReservationResultInput {
   result: ItemsReservationResult;
 }
 
+export interface ProcessPaymentResultInput {
+  userUuid: string;
+  orderUuid: string;
+  paymentMethodUuid: string;
+  success: boolean;
+  reason?: string;
+}
+
 export abstract class OrderService {
   abstract prepareOrderForPayment(
     orderUuid: string,
@@ -26,5 +34,9 @@ export abstract class OrderService {
 
   abstract processReservationResult(
     input: ProcessReservationResultInput,
+  ): Promise<void>;
+
+  abstract processPaymentResult(
+    input: ProcessPaymentResultInput,
   ): Promise<void>;
 }

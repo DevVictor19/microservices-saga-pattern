@@ -4,11 +4,18 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderService, ProcessReservationResultInput } from './interfaces';
+import {
+  OrderService,
+  ProcessPaymentResultInput,
+  ProcessReservationResultInput,
+} from './interfaces';
 import { OrderRepository } from '../repositories';
 import {
   OrderItemsReservationPublisher,
+  OrderItemsUndoReservationPublisher,
   OrderPaymentPublisher,
+  OrderReceiveLoyaltyPointsPublisher,
+  OrderSendToDeliverPublisher,
 } from '../queues';
 import { OrderStatus } from '../entities';
 
@@ -18,8 +25,11 @@ export class OrderServiceImpl implements OrderService {
 
   constructor(
     private readonly orderRepository: OrderRepository,
-    private readonly orderItemsReservationPublisher: OrderItemsReservationPublisher,
     private readonly orderPaymentPublisher: OrderPaymentPublisher,
+    private readonly orderSendToDeliverPublisher: OrderSendToDeliverPublisher,
+    private readonly orderItemsReservationPublisher: OrderItemsReservationPublisher,
+    private readonly orderItemsUndoReservationPublisher: OrderItemsUndoReservationPublisher,
+    private readonly orderReceiveLoyaltyPointsPublisher: OrderReceiveLoyaltyPointsPublisher,
   ) {}
 
   async prepareOrderForPayment(
@@ -89,6 +99,55 @@ export class OrderServiceImpl implements OrderService {
     await this.orderRepository.updateStatus(
       order.id,
       OrderStatus.PAYMENT_PROCESSING,
+    );
+  }
+
+  async processPaymentResult(input: ProcessPaymentResultInput): Promise<void> {
+    const order = await this.orderRepository.findOneByUuid(input.orderUuid);
+
+    if (!order) {
+      this.logger.error(
+        `Order with uuid ${input.orderUuid} not found while processing payment result`,
+      );
+      return;
+    }
+
+    if (!input.success) {
+      this.logger.debug(
+        `Payment failed for order ${input.orderUuid}, setting status to ${OrderStatus.PAYMENT_FAILED}`,
+      );
+
+      await this.orderItemsUndoReservationPublisher.publish({
+        userUuid: order.userUuid,
+        orderUuid: order.uuid,
+      });
+
+      await this.orderRepository.updateStatus(
+        order.id,
+        OrderStatus.PAYMENT_FAILED,
+      );
+
+      return;
+    }
+
+    this.logger.debug(
+      `Payment succeeded for order ${input.orderUuid}, setting status to ${OrderStatus.PAYMENT_SUCCEEDED}`,
+    );
+
+    await Promise.all([
+      this.orderSendToDeliverPublisher.publish({
+        userUuid: order.userUuid,
+        orderUuid: order.uuid,
+      }),
+      this.orderReceiveLoyaltyPointsPublisher.publish({
+        userUuid: order.userUuid,
+        orderUuid: order.uuid,
+      }),
+    ]);
+
+    await this.orderRepository.updateStatus(
+      order.id,
+      OrderStatus.PAYMENT_SUCCEEDED,
     );
   }
 }
