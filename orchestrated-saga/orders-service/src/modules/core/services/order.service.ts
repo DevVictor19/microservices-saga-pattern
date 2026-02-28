@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { OrderService, ProcessReservationResultInput } from './interfaces';
 import { OrderRepository } from '../repositories';
-import { OrderItemsReservationPublisher } from '../queues';
+import {
+  OrderItemsReservationPublisher,
+  OrderPaymentPublisher,
+} from '../queues';
 import { OrderStatus } from '../entities';
 
 @Injectable()
@@ -16,6 +19,7 @@ export class OrderServiceImpl implements OrderService {
   constructor(
     private readonly orderRepository: OrderRepository,
     private readonly orderItemsReservationPublisher: OrderItemsReservationPublisher,
+    private readonly orderPaymentPublisher: OrderPaymentPublisher,
   ) {}
 
   async prepareOrderForPayment(
@@ -74,6 +78,12 @@ export class OrderServiceImpl implements OrderService {
     this.logger.debug(
       `Reservation succeeded for order ${input.orderUuid}, starting payment processing`,
     );
+
+    await this.orderPaymentPublisher.publish({
+      userUuid: input.userUuid,
+      orderUuid: input.orderUuid,
+      paymentMethodUuid: input.paymentMethodUuid,
+    });
 
     await this.orderRepository.updateStatus(
       order.id,
