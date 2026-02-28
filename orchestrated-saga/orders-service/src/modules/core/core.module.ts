@@ -6,6 +6,7 @@ import {
   ORDER_ITEMS_RESERVATION_RESULT_QUEUE,
   ORDER_ITEMS_UNDO_RESERVATION_QUEUE,
   ORDER_PAYMENT_QUEUE,
+  ORDER_PAYMENT_RESULT_QUEUE,
   ORDER_RECEIVE_LOYALTY_POINTS_QUEUE,
   ORDER_SEND_TO_DELIVER_QUEUE,
   OrderItemsReservationPublisher,
@@ -15,6 +16,7 @@ import {
   OrderItemsUndoReservationPublisherImpl,
   OrderPaymentPublisher,
   OrderPaymentPublisherImpl,
+  OrderPaymentResultConsumer,
   OrderReceiveLoyaltyPointsPublisher,
   OrderReceiveLoyaltyPointsPublisherImpl,
   OrderSendToDeliverPublisher,
@@ -36,6 +38,9 @@ import { OrdersController } from './controllers';
     }),
     BullModule.registerQueue({
       name: ORDER_PAYMENT_QUEUE,
+    }),
+    BullModule.registerQueue({
+      name: ORDER_PAYMENT_RESULT_QUEUE,
     }),
     BullModule.registerQueue({
       name: ORDER_ITEMS_UNDO_RESERVATION_QUEUE,
@@ -78,6 +83,7 @@ import { OrdersController } from './controllers';
       useClass: OrderSendToDeliverPublisherImpl,
     },
     OrderItemsReservationResultConsumer,
+    OrderPaymentResultConsumer,
   ],
 })
 export class CoreModule {}
