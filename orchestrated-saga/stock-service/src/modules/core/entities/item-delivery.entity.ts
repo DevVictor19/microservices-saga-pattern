@@ -17,8 +17,8 @@ export class ItemDelivery extends BaseEntity {
   @Column({ name: 'order_uuid', type: 'uuid', nullable: false })
   orderUuid: string;
 
-  @Column({ name: 'payment_uuid', type: 'uuid', nullable: false })
-  paymentUuid: string;
+  @Column({ type: 'int', nullable: false })
+  quantity: number;
 
   @Column({ name: 'delivery_forecast', type: 'timestamp', nullable: false })
   deliveryForecast: Date;
