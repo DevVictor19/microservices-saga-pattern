@@ -117,21 +117,26 @@ export class OrderServiceImpl implements OrderService {
         `Payment failed for order ${input.orderUuid}, setting status to ${OrderStatus.PAYMENT_FAILED}`,
       );
 
-      await this.orderItemsUndoReservationPublisher.publish({
-        userUuid: order.userUuid,
-        orderUuid: order.uuid,
-      });
-
       await this.orderRepository.updateStatus(
         order.id,
         OrderStatus.PAYMENT_FAILED,
       );
+
+      await this.orderItemsUndoReservationPublisher.publish({
+        userUuid: order.userUuid,
+        orderUuid: order.uuid,
+      });
 
       return;
     }
 
     this.logger.debug(
       `Payment succeeded for order ${input.orderUuid}, setting status to ${OrderStatus.PAYMENT_SUCCEEDED}`,
+    );
+
+    await this.orderRepository.updateStatus(
+      order.id,
+      OrderStatus.PAYMENT_SUCCEEDED,
     );
 
     await Promise.all([
@@ -144,10 +149,5 @@ export class OrderServiceImpl implements OrderService {
         orderUuid: order.uuid,
       }),
     ]);
-
-    await this.orderRepository.updateStatus(
-      order.id,
-      OrderStatus.PAYMENT_SUCCEEDED,
-    );
   }
 }
