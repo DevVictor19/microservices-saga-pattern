@@ -7,6 +7,8 @@ services:
       POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
+    volumes:
+      - ./@migrations:/docker-entrypoint-initdb.d
 
   redis:
     container_name: redis
