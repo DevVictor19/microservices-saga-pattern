@@ -6,6 +6,7 @@ import {
 } from './interfaces';
 import { ItemReservationRepository } from '../repositories';
 import { OrderItemsReservationResultPublisher } from '../queues';
+import { setTimeout } from 'node:timers/promises';
 
 @Injectable()
 export class ItemReservationServiceImpl implements ItemReservationService {
@@ -17,6 +18,8 @@ export class ItemReservationServiceImpl implements ItemReservationService {
   ) {}
 
   async reserveItems(input: ReserveItemsInput): Promise<void> {
+    await setTimeout(10000);
+
     const result = await this.itemReservationRepository.reserveItems(input);
 
     this.logger.debug(
@@ -32,6 +35,8 @@ export class ItemReservationServiceImpl implements ItemReservationService {
   }
 
   async undoReservation(input: UndoReservationInput): Promise<void> {
+    await setTimeout(10000);
+
     await this.itemReservationRepository.undoReservation(input.orderUuid);
 
     this.logger.debug(`Undid reservation for order ${input.orderUuid}`);

@@ -16,6 +16,8 @@ export class PaymentServiceImpl implements PaymentService {
   ) {}
 
   async processPayment(input: ProcessPaymentInput): Promise<void> {
+    await setTimeout(10000);
+
     const payment = await this.paymentRepository.findByUserOrderAndMethod(
       input.userUuid,
       input.orderUuid,
@@ -32,8 +34,6 @@ export class PaymentServiceImpl implements PaymentService {
     const newPayment = await this.paymentRepository.save(
       this.createPayment(input),
     );
-
-    await setTimeout(5000);
 
     if (input.paymentMethodUuid === 'ff1a8411-b443-408f-8012-fa62eb9067bd') {
       this.logger.error(

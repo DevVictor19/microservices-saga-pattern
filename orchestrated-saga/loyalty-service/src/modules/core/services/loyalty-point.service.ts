@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { setTimeout } from 'node:timers/promises';
 import { CalcLoyaltyPointsInput, LoyaltyPointService } from './interfaces';
 import { LoyaltyPointRepository } from '../repositories';
 import { LoyaltyPoint } from '../entities';
@@ -14,6 +15,7 @@ export class LoyaltyPointServiceImpl implements LoyaltyPointService {
   ) {}
 
   async calcLoyaltyPoints(input: CalcLoyaltyPointsInput): Promise<void> {
+    await setTimeout(10000);
     const loyaltyPoint = this.createLoyaltyPoint(input);
     await this.loyaltyPointRepository.save(loyaltyPoint);
     this.logger.debug(

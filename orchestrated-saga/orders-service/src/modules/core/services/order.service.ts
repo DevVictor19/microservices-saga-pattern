@@ -46,6 +46,8 @@ export class OrderServiceImpl implements OrderService {
       throw new BadRequestException('Invalid status for payment');
     }
 
+    this.logger.debug(`Publishing items reservation for order ${orderUuid}`);
+
     await this.orderItemsReservationPublisher.publish({
       userUuid: order.userUuid,
       orderUuid,
