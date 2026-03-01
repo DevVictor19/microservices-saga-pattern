@@ -75,6 +75,7 @@ services:
       - "3003:3000"
     depends_on:
       - database
+      - redis
     environment:
       PORT: 3000
       DB_HOST: database
