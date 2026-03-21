@@ -1,0 +1,89 @@
+services:
+  database:
+    container_name: postgres
+    image: postgres:18
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./@migrations:/docker-entrypoint-initdb.d
+
+  redis:
+    container_name: redis
+    image: redis:8
+    ports:
+      - "6379:6379"
+
+  stock-service:
+    container_name: stock-service
+    build: ./stock-service
+    ports:
+      - "3000:3000"
+    depends_on:
+      - database
+      - redis
+    environment:
+      PORT: 3000
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_SCHEMA: stock_service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+  orders-service:
+    container_name: orders-service
+    build: ./orders-service
+    ports:
+      - "3001:3000"
+    depends_on:
+      - database
+      - redis
+    environment:
+      PORT: 3000
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_SCHEMA: orders_service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+  payments-service:
+    container_name: payments-service
+    build: ./payments-service
+    ports:
+      - "3002:3000"
+    depends_on:
+      - database
+      - redis
+    environment:
+      PORT: 3000
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_SCHEMA: payments_service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+  loyalty-service:
+    container_name: loyalty-service
+    build: ./loyalty-service
+    ports:
+      - "3003:3000"
+    depends_on:
+      - database
+      - redis
+    environment:
+      PORT: 3000
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_SCHEMA: loyalty_service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
