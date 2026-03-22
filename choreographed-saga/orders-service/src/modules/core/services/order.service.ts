@@ -4,7 +4,11 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderService } from './interfaces';
+import {
+  OrderService,
+  ProcessReservationFailedInput,
+  ProcessReservationSucceedInput,
+} from './interfaces';
 import { OrderRepository } from '../repositories';
 import { OrderStatus } from '../entities';
 import { OrderEventsPublisher } from '../events';
@@ -47,6 +51,49 @@ export class OrderServiceImpl implements OrderService {
     await this.orderRepository.updateStatus(
       order.id,
       OrderStatus.RESERVING_ITEMS,
+    );
+  }
+
+  async processReservationSucceed(
+    input: ProcessReservationSucceedInput,
+  ): Promise<void> {
+    const order = await this.orderRepository.findOneByUuid(input.orderUuid);
+
+    if (!order) {
+      this.logger.error(
+        `Order with uuid ${input.orderUuid} not found while processing reservation result`,
+      );
+      return;
+    }
+
+    this.logger.debug(
+      `Reservation succeeded for order ${input.orderUuid}, starting payment processing`,
+    );
+
+    await this.orderRepository.updateStatus(
+      order.id,
+      OrderStatus.PAYMENT_PROCESSING,
+    );
+  }
+
+  async processReservationFailed(
+    input: ProcessReservationFailedInput,
+  ): Promise<void> {
+    const order = await this.orderRepository.findOneByUuid(input.orderUuid);
+
+    if (!order) {
+      this.logger.error(
+        `Order with uuid ${input.orderUuid} not found while processing reservation result`,
+      );
+      return;
+    }
+
+    this.logger.debug(
+      `Reservation failed for order ${input.orderUuid}, setting status to ${OrderStatus.UNAVAILABLE_ITEMS}`,
+    );
+    await this.orderRepository.updateStatus(
+      order.id,
+      OrderStatus.UNAVAILABLE_ITEMS,
     );
   }
 }

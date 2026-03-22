@@ -1,34 +1,31 @@
-export type ItemsReservationResult =
-  | {
-      success: true;
-      reservationUuids: string[];
-    }
-  | {
-      success: false;
-      failedItems: Array<{
-        itemUuid: string;
-        quantity: number;
-      }>;
-    };
-
-export interface ProcessReservationResultInput {
+export interface ProcessReservationSucceedInput {
   userUuid: string;
   orderUuid: string;
   paymentMethodUuid: string;
-  result: ItemsReservationResult;
+  reservationUuids: string[];
 }
 
-export interface ProcessPaymentResultInput {
+export interface ProcessReservationFailedInput {
   userUuid: string;
   orderUuid: string;
   paymentMethodUuid: string;
-  success: boolean;
-  reason?: string;
+  failedItems: Array<{
+    itemUuid: string;
+    quantity: number;
+  }>;
 }
 
 export abstract class OrderService {
   abstract startOrderPayment(
     orderUuid: string,
     paymentMethodUuid: string,
+  ): Promise<void>;
+
+  abstract processReservationSucceed(
+    input: ProcessReservationSucceedInput,
+  ): Promise<void>;
+
+  abstract processReservationFailed(
+    input: ProcessReservationFailedInput,
   ): Promise<void>;
 }

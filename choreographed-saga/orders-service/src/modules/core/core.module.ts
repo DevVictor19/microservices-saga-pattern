@@ -5,7 +5,11 @@ import { Order, OrderItem } from './entities';
 import { OrderRepository, OrderRepositoryImpl } from './repositories';
 import { OrderService, OrderServiceImpl } from './services';
 import { OrdersController } from './controllers';
-import { OrderEventsPublisher, OrderEventsPublisherImpl } from './events';
+import {
+  OrderEventsPublisher,
+  OrderEventsPublisherImpl,
+  StockEventsConsumer,
+} from './events';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Order, OrderItem])],
@@ -23,6 +27,7 @@ import { OrderEventsPublisher, OrderEventsPublisherImpl } from './events';
       provide: OrderEventsPublisher,
       useClass: OrderEventsPublisherImpl,
     },
+    StockEventsConsumer,
   ],
 })
 export class CoreModule {}
