@@ -33,10 +33,6 @@ export class OrderEventsConsumer implements OnModuleInit {
             case OrderEventType.START_ORDER_PAYMENT:
               void this.itemReservationService.reserveItems(event.payload);
               break;
-            default:
-              this.logger.warn(
-                `Received unknown event type: ${event.type as string}`,
-              );
           }
         } catch (error) {
           this.logger.error('Failed to process incoming message', error);

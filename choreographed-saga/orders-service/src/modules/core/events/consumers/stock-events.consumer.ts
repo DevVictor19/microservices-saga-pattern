@@ -36,10 +36,6 @@ export class StockEventsConsumer implements OnModuleInit {
             case StockEventType.RESERVATION_FAILED:
               void this.orderService.processReservationFailed(event.payload);
               break;
-            default:
-              this.logger.warn(
-                `Received unknown event type: ${(event as StockEvent).type}`,
-              );
           }
         } catch (error) {
           this.logger.error('Failed to process incoming message', error);
