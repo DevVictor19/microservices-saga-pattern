@@ -3,6 +3,7 @@ import { OrderItem } from '../../value-objects';
 export interface ReserveItemsInput {
   userUuid: string;
   orderUuid: string;
+  totalPrice: number;
   paymentMethodUuid: string;
   items: OrderItem[];
 }

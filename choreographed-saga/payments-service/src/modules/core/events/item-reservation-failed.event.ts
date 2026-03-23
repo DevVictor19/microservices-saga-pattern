@@ -1,9 +1,8 @@
-export interface StartOrderPaymentEvent {
+export interface ItemReservationFailedEvent {
   userUuid: string;
   orderUuid: string;
-  totalPrice: number;
   paymentMethodUuid: string;
-  items: Array<{
+  failedItems: Array<{
     itemUuid: string;
     quantity: number;
   }>;

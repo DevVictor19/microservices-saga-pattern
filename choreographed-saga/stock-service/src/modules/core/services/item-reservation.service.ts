@@ -39,6 +39,7 @@ export class ItemReservationServiceImpl implements ItemReservationService {
     await this.stockEventsPublisher.emitItemReservationSucceedEvent({
       userUuid: input.userUuid,
       orderUuid: input.orderUuid,
+      totalPrice: input.totalPrice,
       paymentMethodUuid: input.paymentMethodUuid,
       reservationUuids: result.reservationUuids,
     });

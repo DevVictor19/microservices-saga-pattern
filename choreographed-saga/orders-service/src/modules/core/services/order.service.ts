@@ -41,6 +41,7 @@ export class OrderServiceImpl implements OrderService {
     await this.orderEventsPublisher.emitStartOrderPaymentEvent({
       userUuid: order.userUuid,
       orderUuid,
+      totalPrice: order.totalPrice,
       paymentMethodUuid,
       items: order.orderItems.map((d) => ({
         itemUuid: d.itemUuid,
