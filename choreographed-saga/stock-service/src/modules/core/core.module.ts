@@ -15,6 +15,7 @@ import {
 } from './services';
 import {
   OrderEventsConsumer,
+  PaymentsEventConsumer,
   StockEventsPublisher,
   StockEventsPublisherImpl,
 } from './events';
@@ -43,6 +44,7 @@ import {
       provide: StockEventsPublisher,
       useClass: StockEventsPublisherImpl,
     },
+    PaymentsEventConsumer,
   ],
 })
 export class CoreModule {}
