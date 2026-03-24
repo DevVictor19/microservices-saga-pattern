@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import {
   OrderService,
+  ProcessPaymentFailedInput,
+  ProcessPaymentSucceedInput,
   ProcessReservationFailedInput,
   ProcessReservationSucceedInput,
 } from './interfaces';
@@ -95,6 +97,48 @@ export class OrderServiceImpl implements OrderService {
     await this.orderRepository.updateStatus(
       order.id,
       OrderStatus.UNAVAILABLE_ITEMS,
+    );
+  }
+
+  async processPaymentFailed(input: ProcessPaymentFailedInput): Promise<void> {
+    const order = await this.orderRepository.findOneByUuid(input.orderUuid);
+
+    if (!order) {
+      this.logger.error(
+        `Order with uuid ${input.orderUuid} not found while processing payment result`,
+      );
+      return;
+    }
+
+    this.logger.debug(
+      `Payment failed for order ${input.orderUuid}, setting status to ${OrderStatus.PAYMENT_FAILED}`,
+    );
+
+    await this.orderRepository.updateStatus(
+      order.id,
+      OrderStatus.PAYMENT_FAILED,
+    );
+  }
+
+  async processPaymentSucceed(
+    input: ProcessPaymentSucceedInput,
+  ): Promise<void> {
+    const order = await this.orderRepository.findOneByUuid(input.orderUuid);
+
+    if (!order) {
+      this.logger.error(
+        `Order with uuid ${input.orderUuid} not found while processing payment result`,
+      );
+      return;
+    }
+
+    this.logger.debug(
+      `Payment succeeded for order ${input.orderUuid}, setting status to ${OrderStatus.PAYMENT_SUCCEEDED}`,
+    );
+
+    await this.orderRepository.updateStatus(
+      order.id,
+      OrderStatus.PAYMENT_SUCCEEDED,
     );
   }
 }

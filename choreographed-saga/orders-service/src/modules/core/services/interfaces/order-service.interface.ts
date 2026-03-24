@@ -15,6 +15,21 @@ export interface ProcessReservationFailedInput {
   }>;
 }
 
+export interface ProcessPaymentFailedInput {
+  orderUuid: string;
+  paymentMethodUuid: string;
+  userUuid: string;
+  totalPrice: number;
+}
+
+export interface ProcessPaymentSucceedInput {
+  orderUuid: string;
+  paymentMethodUuid: string;
+  userUuid: string;
+  totalPrice: number;
+  reason?: string;
+}
+
 export abstract class OrderService {
   abstract startOrderPayment(
     orderUuid: string,
@@ -27,5 +42,13 @@ export abstract class OrderService {
 
   abstract processReservationFailed(
     input: ProcessReservationFailedInput,
+  ): Promise<void>;
+
+  abstract processPaymentFailed(
+    input: ProcessPaymentFailedInput,
+  ): Promise<void>;
+
+  abstract processPaymentSucceed(
+    input: ProcessPaymentSucceedInput,
   ): Promise<void>;
 }

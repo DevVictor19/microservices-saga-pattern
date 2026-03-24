@@ -8,6 +8,7 @@ import { OrdersController } from './controllers';
 import {
   OrderEventsPublisher,
   OrderEventsPublisherImpl,
+  PaymentsEventConsumer,
   StockEventsConsumer,
 } from './events';
 
@@ -28,6 +29,7 @@ import {
       useClass: OrderEventsPublisherImpl,
     },
     StockEventsConsumer,
+    PaymentsEventConsumer,
   ],
 })
 export class CoreModule {}
