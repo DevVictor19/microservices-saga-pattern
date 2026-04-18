@@ -1,21 +1,21 @@
-# Orchestrated Saga — Fluxo de Eventos
+# Orchestrated Saga — Event Flow
 
-## Visão Geral
+## Overview
 
-Este projeto implementa o padrão **Saga Orquestrada** para processar pagamentos de pedidos em uma arquitetura de microsserviços. O **orders-service** atua como orquestrador central, controlando todo o fluxo de forma imperativa através de filas de comando e resultado via **BullMQ** (Redis).
+This project implements the **Orchestrated Saga** pattern for processing order payments in a microservices architecture. The **orders-service** acts as a central orchestrator, controlling the entire flow imperatively through command and result queues via **BullMQ** (Redis).
 
-### Serviços
+### Services
 
-| Serviço              | Porta | Papel                                                      |
-| -------------------- | ----- | ---------------------------------------------------------- |
-| **orders-service**   | 3000  | Orquestrador — gerencia pedidos e controla o fluxo da saga |
-| **stock-service**    | 3001  | Worker — reserva de estoque e entregas                     |
-| **payments-service** | 3002  | Worker — processamento de pagamentos                       |
-| **loyalty-service**  | 3003  | Worker — programa de pontos de fidelidade                  |
+| Service              | Port | Role                                                         |
+| -------------------- | ---- | ------------------------------------------------------------ |
+| **orders-service**   | 3000 | Orchestrator — manages orders and controls the saga flow     |
+| **stock-service**    | 3001 | Worker — stock reservation and deliveries                    |
+| **payments-service** | 3002 | Worker — payment processing                                  |
+| **loyalty-service**  | 3003 | Worker — loyalty points program                              |
 
-### Filas BullMQ
+### BullMQ Queues
 
-| Fila                                   | Job Name                             | Produtor         | Consumidor       |
+| Queue                                  | Job Name                             | Producer         | Consumer         |
 | -------------------------------------- | ------------------------------------ | ---------------- | ---------------- |
 | `order-items-reservation-queue`        | `order-items-reservation-job`        | orders-service   | stock-service    |
 | `order-items-reservation-result-queue` | `order-items-reservation-result-job` | stock-service    | orders-service   |
@@ -25,17 +25,17 @@ Este projeto implementa o padrão **Saga Orquestrada** para processar pagamentos
 | `order-send-to-deliver-queue`          | `send-to-deliver-job`                | orders-service   | stock-service    |
 | `order-receive-loyalty-points-queue`   | `receive-loyalty-points-job`         | orders-service   | loyalty-service  |
 
-### Padrão de Comunicação
+### Communication Pattern
 
-Diferentemente da saga coreografada (Redis Pub/Sub), aqui cada interação segue o padrão **Command/Reply**:
+Unlike the choreographed saga (Redis Pub/Sub), here each interaction follows the **Command/Reply** pattern:
 
-- O orquestrador envia um **comando** para uma fila de destino
-- O worker processa e envia o **resultado** de volta para uma fila de resposta
-- O orquestrador decide o próximo passo com base no resultado
+- The orchestrator sends a **command** to a destination queue
+- The worker processes it and sends the **result** back to a reply queue
+- The orchestrator decides the next step based on the result
 
 ---
 
-## Diagrama — Fluxo Completo (Happy Path + Compensações)
+## Diagram — Full Flow (Happy Path + Compensations)
 
 ```mermaid
 sequenceDiagram
@@ -143,15 +143,15 @@ sequenceDiagram
 
 ---
 
-## Diagrama — Arquitetura de Filas (Command/Reply)
+## Diagram — Queue Architecture (Command/Reply)
 
 ```mermaid
 flowchart LR
-    subgraph Orchestrator["Orquestrador (orders-service)"]
+    subgraph Orchestrator["Orchestrator (orders-service)"]
         O[Orders Service]
     end
 
-    subgraph Commands["Filas de Comando"]
+    subgraph Commands["Command Queues"]
         Q1[order-items-reservation-queue]
         Q3[order-payment-queue]
         Q5[order-send-to-deliver-queue]
@@ -159,7 +159,7 @@ flowchart LR
         Q7[order-items-undo-reservation-queue]
     end
 
-    subgraph Results["Filas de Resultado"]
+    subgraph Results["Result Queues"]
         Q2[order-items-reservation-result-queue]
         Q4[order-payment-result-queue]
     end
@@ -170,11 +170,11 @@ flowchart LR
         L[Loyalty Service]
     end
 
-    O -->|"Comando: reservar itens"| Q1
-    O -->|"Comando: processar pagamento"| Q3
-    O -->|"Comando: enviar para entrega"| Q5
-    O -->|"Comando: calcular pontos"| Q6
-    O -->|"Compensação: desfazer reserva"| Q7
+    O -->|"Command: reserve items"| Q1
+    O -->|"Command: process payment"| Q3
+    O -->|"Command: send to delivery"| Q5
+    O -->|"Command: calculate points"| Q6
+    O -->|"Compensation: undo reservation"| Q7
 
     Q1 --> S
     Q3 --> P
@@ -182,8 +182,8 @@ flowchart LR
     Q6 --> L
     Q7 --> S
 
-    S -->|"Resultado: reserva"| Q2
-    P -->|"Resultado: pagamento"| Q4
+    S -->|"Result: reservation"| Q2
+    P -->|"Result: payment"| Q4
 
     Q2 --> O
     Q4 --> O
@@ -191,19 +191,19 @@ flowchart LR
 
 ---
 
-## Diagrama — Ciclo de Vida do Status do Pedido
+## Diagram — Order Status Lifecycle
 
 ```mermaid
 stateDiagram-v2
-    [*] --> waiting_payment: Pedido criado
+    [*] --> waiting_payment: Order created
 
-    waiting_payment --> reserving_items: Comando enviado para<br/>order-items-reservation-queue
+    waiting_payment --> reserving_items: Command sent to<br/>order-items-reservation-queue
 
-    reserving_items --> unavailable_items: Resultado: success=false
-    reserving_items --> payment_processing: Resultado: success=true<br/>→ Comando enviado para<br/>order-payment-queue
+    reserving_items --> unavailable_items: Result: success=false
+    reserving_items --> payment_processing: Result: success=true<br/>→ Command sent to<br/>order-payment-queue
 
-    payment_processing --> payment_failed: Resultado: success=false<br/>→ Compensação: undo reservation
-    payment_processing --> payment_succeeded: Resultado: success=true<br/>→ Comandos: deliver + loyalty
+    payment_processing --> payment_failed: Result: success=false<br/>→ Compensation: undo reservation
+    payment_processing --> payment_succeeded: Result: success=true<br/>→ Commands: deliver + loyalty
 
     unavailable_items --> [*]
     payment_failed --> [*]
@@ -212,92 +212,92 @@ stateDiagram-v2
 
 ---
 
-## Diagrama — Matriz Produtor/Consumidor por Serviço
+## Diagram — Producer/Consumer Matrix by Service
 
 ```mermaid
 flowchart TB
-    subgraph orders-service["orders-service (Orquestrador)"]
+    subgraph orders-service["orders-service (Orchestrator)"]
         direction TB
-        OP["Publica em:<br/>• order-items-reservation-queue<br/>• order-payment-queue<br/>• order-items-undo-reservation-queue<br/>• order-send-to-deliver-queue<br/>• order-receive-loyalty-points-queue"]
-        OC["Consome de:<br/>• order-items-reservation-result-queue<br/>• order-payment-result-queue"]
+        OP["Publishes to:<br/>• order-items-reservation-queue<br/>• order-payment-queue<br/>• order-items-undo-reservation-queue<br/>• order-send-to-deliver-queue<br/>• order-receive-loyalty-points-queue"]
+        OC["Consumes from:<br/>• order-items-reservation-result-queue<br/>• order-payment-result-queue"]
     end
 
     subgraph stock-service["stock-service (Worker)"]
         direction TB
-        SP["Publica em:<br/>• order-items-reservation-result-queue"]
-        SC["Consome de:<br/>• order-items-reservation-queue<br/>• order-items-undo-reservation-queue<br/>• order-send-to-deliver-queue"]
+        SP["Publishes to:<br/>• order-items-reservation-result-queue"]
+        SC["Consumes from:<br/>• order-items-reservation-queue<br/>• order-items-undo-reservation-queue<br/>• order-send-to-deliver-queue"]
     end
 
     subgraph payments-service["payments-service (Worker)"]
         direction TB
-        PP["Publica em:<br/>• order-payment-result-queue"]
-        PC["Consome de:<br/>• order-payment-queue"]
+        PP["Publishes to:<br/>• order-payment-result-queue"]
+        PC["Consumes from:<br/>• order-payment-queue"]
     end
 
     subgraph loyalty-service["loyalty-service (Worker)"]
         direction TB
-        LC["Consome de:<br/>• order-receive-loyalty-points-queue"]
-        LN["Publica em: nenhuma fila"]
+        LC["Consumes from:<br/>• order-receive-loyalty-points-queue"]
+        LN["Publishes to: no queues"]
     end
 ```
 
 ---
 
-## Fluxo Detalhado Passo a Passo
+## Detailed Step-by-Step Flow
 
-### 1. Início — Cliente Solicita Pagamento
+### 1. Start — Client Requests Payment
 
-O cliente faz uma requisição `POST /v1/orders/payments` com `orderUuid` e `paymentMethodUuid`. O **orders-service** (orquestrador) valida que o pedido existe e tem status `waiting_payment`, envia um comando de reserva para a fila `order-items-reservation-queue` e atualiza o status do pedido para `reserving_items`.
+The client sends a `POST /v1/orders/payments` request with `orderUuid` and `paymentMethodUuid`. The **orders-service** (orchestrator) validates that the order exists and has status `waiting_payment`, sends a reservation command to the `order-items-reservation-queue` queue, and updates the order status to `reserving_items`.
 
-### 2. Reserva de Itens (Stock Service)
+### 2. Item Reservation (Stock Service)
 
-O **stock-service** consome o job `order-items-reservation-job`. Para cada item do pedido, dentro de uma transação com lock pessimista:
+The **stock-service** consumes the `order-items-reservation-job` job. For each order item, within a transaction with a pessimistic lock:
 
-- Verifica se há estoque suficiente (`quantityInStock >= quantidade solicitada`)
-- Decrementa `quantityInStock`
-- Cria um registro `item_reservation`
+- Checks if there is sufficient stock (`quantityInStock >= requested quantity`)
+- Decrements `quantityInStock`
+- Creates an `item_reservation` record
 
-**Sucesso:** Publica `order-items-reservation-result-job` na fila de resultado com `success: true` e `reservationUuids[]`.
-**Falha:** Faz rollback de toda a transação e publica resultado com `success: false` e `failedItems[]`.
+**Success:** Publishes `order-items-reservation-result-job` to the result queue with `success: true` and `reservationUuids[]`.
+**Failure:** Rolls back the entire transaction and publishes result with `success: false` and `failedItems[]`.
 
-### 3. Orquestrador Processa Resultado da Reserva
+### 3. Orchestrator Processes Reservation Result
 
-O **orders-service** consome o resultado da fila `order-items-reservation-result-queue`:
+The **orders-service** consumes the result from the `order-items-reservation-result-queue` queue:
 
-- **`success: true`** → Envia comando de pagamento para `order-payment-queue` com `totalPrice` e atualiza status para `payment_processing`
-- **`success: false`** → Atualiza status para `unavailable_items` e a saga termina (sem necessidade de compensação)
+- **`success: true`** → Sends payment command to `order-payment-queue` with `totalPrice` and updates status to `payment_processing`
+- **`success: false`** → Updates status to `unavailable_items` and the saga ends (no compensation needed)
 
-### 4. Processamento do Pagamento (Payments Service)
+### 4. Payment Processing (Payments Service)
 
-O **payments-service** consome o job `order-payment-job`. Cria um registro de pagamento com status `pending` e processa:
+The **payments-service** consumes the `order-payment-job` job. Creates a payment record with status `pending` and processes it:
 
-- Verifica duplicidade (mesmo `userUuid` + `orderUuid` + `paymentMethodUuid`)
-- Se o `paymentMethodUuid` é o UUID de teste de falha (`ff1a8411-b443-408f-8012-fa62eb9067bd`), marca como `failed`
-- Caso contrário, marca como `completed`
+- Checks for duplicates (same `userUuid` + `orderUuid` + `paymentMethodUuid`)
+- If `paymentMethodUuid` is the failure test UUID (`ff1a8411-b443-408f-8012-fa62eb9067bd`), marks it as `failed`
+- Otherwise, marks it as `completed`
 
-**Sucesso:** Publica `payment-result-job` na fila de resultado com `success: true`.
-**Falha:** Publica resultado com `success: false` e `reason`.
+**Success:** Publishes `payment-result-job` to the result queue with `success: true`.
+**Failure:** Publishes result with `success: false` and `reason`.
 
-### 5. Orquestrador Processa Resultado do Pagamento
+### 5. Orchestrator Processes Payment Result
 
-O **orders-service** consome o resultado da fila `order-payment-result-queue`:
+The **orders-service** consumes the result from the `order-payment-result-queue` queue:
 
-#### Pagamento com Sucesso (`success: true`)
+#### Successful Payment (`success: true`)
 
-O orquestrador atualiza status para `payment_succeeded` e dispara dois comandos em paralelo:
+The orchestrator updates status to `payment_succeeded` and dispatches two commands in parallel:
 
-| Fila                                 | Serviço Destino | Ação                                                                               |
-| ------------------------------------ | --------------- | ---------------------------------------------------------------------------------- |
-| `order-send-to-deliver-queue`        | stock-service   | Cria registros `item_delivery` com previsão de entrega e remove `item_reservation` |
-| `order-receive-loyalty-points-queue` | loyalty-service | Calcula pontos `floor(totalPrice × 0.25)` e cria registro `loyalty_point`          |
+| Queue                                | Target Service  | Action                                                                              |
+| ------------------------------------ | --------------- | ----------------------------------------------------------------------------------- |
+| `order-send-to-deliver-queue`        | stock-service   | Creates `item_delivery` records with delivery forecast and removes `item_reservation` |
+| `order-receive-loyalty-points-queue` | loyalty-service | Calculates points `floor(totalPrice × 0.25)` and creates `loyalty_point` record     |
 
-#### Pagamento com Falha (`success: false`)
+#### Failed Payment (`success: false`)
 
-O orquestrador atualiza status para `payment_failed` e dispara a **compensação**:
+The orchestrator updates status to `payment_failed` and dispatches the **compensation**:
 
-| Fila                                 | Serviço Destino | Ação (Compensação)                                     |
-| ------------------------------------ | --------------- | ------------------------------------------------------ |
-| `order-items-undo-reservation-queue` | stock-service   | Restaura `quantityInStock` e remove `item_reservation` |
+| Queue                                | Target Service  | Action (Compensation)                                       |
+| ------------------------------------ | --------------- | ----------------------------------------------------------- |
+| `order-items-undo-reservation-queue` | stock-service   | Restores `quantityInStock` and removes `item_reservation`   |
 
 ---
 

@@ -1,107 +1,107 @@
 # Microservices Saga Pattern
 
-Implementação prática do padrão **Saga** para gerenciamento de transações distribuídas em microsserviços, com duas abordagens: **Coreografada** e **Orquestrada**.
+A hands-on implementation of the **Saga** pattern for distributed transaction management in microservices, featuring two approaches: **Choreographed** and **Orchestrated**.
 
-## Cenário de Negócio
+## Business Scenario
 
-Um fluxo de pagamento de pedido que envolve 4 microsserviços:
+An order payment flow involving 4 microservices:
 
-| Serviço              | Responsabilidade                                      |
-| -------------------- | ----------------------------------------------------- |
-| **orders-service**   | Gerenciamento de pedidos e controle de status         |
-| **stock-service**    | Reserva de estoque, entregas e controle de inventário |
-| **payments-service** | Processamento de pagamentos                           |
-| **loyalty-service**  | Programa de pontos de fidelidade                      |
+| Service              | Responsibility                              |
+| -------------------- | ------------------------------------------- |
+| **orders-service**   | Order management and status control         |
+| **stock-service**    | Stock reservation, deliveries, and inventory control |
+| **payments-service** | Payment processing                          |
+| **loyalty-service**  | Loyalty points program                      |
 
-O fluxo completo é: **criar pedido → reservar estoque → processar pagamento → registrar entrega + calcular pontos de fidelidade**, com compensações automáticas em caso de falha.
+The full flow is: **create order → reserve stock → process payment → register delivery + calculate loyalty points**, with automatic compensations on failure.
 
 ---
 
-## Projetos
+## Projects
 
-### 1. Saga Coreografada (`choreographed-saga/`)
+### 1. Choreographed Saga (`choreographed-saga/`)
 
-Cada serviço publica e reage a **eventos de domínio** de forma independente, sem um coordenador central. A coordenação emerge da coreografia entre os serviços.
+Each service publishes and reacts to **domain events** independently, without a central coordinator. Coordination emerges from the choreography between services.
 
-- **Comunicação:** Redis Pub/Sub (canais: `order-events`, `stock-events`, `payment-events`)
-- **Padrão:** Publish/Subscribe — serviços publicam eventos e múltiplos consumidores reagem
-- **Compensação:** Serviços reagem independentemente a eventos de falha (ex: stock-service escuta `PAYMENT_FAILED` e desfaz a reserva)
-- **Documentação completa:** [`choreographed-saga/@docs/choreographed-saga-flow.md`](choreographed-saga/@docs/choreographed-saga-flow.md)
+- **Communication:** Redis Pub/Sub (channels: `order-events`, `stock-events`, `payment-events`)
+- **Pattern:** Publish/Subscribe — services publish events and multiple consumers react
+- **Compensation:** Services independently react to failure events (e.g., stock-service listens to `PAYMENT_FAILED` and undoes the reservation)
+- **Full documentation:** [`choreographed-saga/@docs/choreographed-saga-flow.md`](choreographed-saga/@docs/choreographed-saga-flow.md)
 
 ```
-Cliente → Orders (START_ORDER_PAYMENT)
+Client → Orders (START_ORDER_PAYMENT)
            → Stock (RESERVATION_SUCCEED / RESERVATION_FAILED)
               → Payments (PAYMENT_SUCCEED / PAYMENT_FAILED)
-                 → Orders (atualiza status)
-                 → Stock (entrega ou desfaz reserva)
-                 → Loyalty (calcula pontos)
+                 → Orders (updates status)
+                 → Stock (delivers or undoes reservation)
+                 → Loyalty (calculates points)
 ```
 
-### 2. Saga Orquestrada (`orchestrated-saga/`)
+### 2. Orchestrated Saga (`orchestrated-saga/`)
 
-O **orders-service** atua como orquestrador central, controlando todo o fluxo de forma imperativa através de filas de comando e resultado.
+The **orders-service** acts as a central orchestrator, controlling the entire flow imperatively through command and result queues.
 
-- **Comunicação:** BullMQ (filas Redis com workers)
-- **Padrão:** Command/Reply — orquestrador envia comandos e recebe resultados
-- **Compensação:** Orquestrador envia comando explícito de undo (ex: publica na fila `order-items-undo-reservation-queue`)
-- **Documentação completa:** [`orchestrated-saga/@docs/orchestrated-saga-flow.md`](orchestrated-saga/@docs/orchestrated-saga-flow.md)
+- **Communication:** BullMQ (Redis queues with workers)
+- **Pattern:** Command/Reply — orchestrator sends commands and receives results
+- **Compensation:** Orchestrator sends an explicit undo command (e.g., publishes to the `order-items-undo-reservation-queue` queue)
+- **Full documentation:** [`orchestrated-saga/@docs/orchestrated-saga-flow.md`](orchestrated-saga/@docs/orchestrated-saga-flow.md)
 
 ```
-Cliente → Orders (orquestrador)
-           → [fila] Stock: reservar itens → [fila resultado] Orders
-           → [fila] Payments: processar pagamento → [fila resultado] Orders
-           → [fila] Stock: enviar para entrega
-           → [fila] Loyalty: calcular pontos
+Client → Orders (orchestrator)
+           → [queue] Stock: reserve items → [result queue] Orders
+           → [queue] Payments: process payment → [result queue] Orders
+           → [queue] Stock: send to delivery
+           → [queue] Loyalty: calculate points
 ```
 
 ---
 
-## Comparação entre as Abordagens
+## Comparison Between Approaches
 
-| Aspecto                   | Coreografada                        | Orquestrada                         |
+| Aspect                    | Choreographed                       | Orchestrated                        |
 | ------------------------- | ----------------------------------- | ----------------------------------- |
-| **Controle de fluxo**     | Distribuído entre todos os serviços | Centralizado no orders-service      |
-| **Message broker**        | Redis Pub/Sub (canais)              | BullMQ (filas Redis)                |
-| **Comunicação**           | Publish/Subscribe (eventos)         | Command/Reply (request-response)    |
-| **Compensação**           | Serviços reagem a eventos de falha  | Orquestrador envia comando de undo  |
-| **Acoplamento**           | Serviços conhecem eventos de outros | Workers não conhecem uns aos outros |
-| **Visibilidade do fluxo** | Distribuída entre consumidores      | Centralizada em um só lugar         |
-| **Ponto único de falha**  | Não há                              | Orquestrador pode ser gargalo       |
-| **Complexidade**          | Fluxo difícil de rastrear           | Fluxo fácil de entender             |
+| **Flow control**          | Distributed across all services     | Centralized in orders-service       |
+| **Message broker**        | Redis Pub/Sub (channels)            | BullMQ (Redis queues)               |
+| **Communication**         | Publish/Subscribe (events)          | Command/Reply (request-response)    |
+| **Compensation**          | Services react to failure events    | Orchestrator sends undo command     |
+| **Coupling**              | Services know each other's events   | Workers are unaware of each other   |
+| **Flow visibility**       | Distributed across consumers        | Centralized in a single place       |
+| **Single point of failure** | None                              | Orchestrator can be a bottleneck    |
+| **Complexity**            | Flow is hard to trace               | Flow is easy to understand          |
 
 ---
 
-## Pré-requisitos
+## Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) e [Docker Compose](https://docs.docker.com/compose/install/)
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
 
 ---
 
-## Como Rodar
+## How to Run
 
-### Saga Coreografada
+### Choreographed Saga
 
 ```bash
 cd choreographed-saga
 docker compose up --build
 ```
 
-### Saga Orquestrada
+### Orchestrated Saga
 
 ```bash
 cd orchestrated-saga
 docker compose up --build
 ```
 
-> **Nota:** Os dois projetos usam as mesmas portas, então execute apenas um de cada vez, ou pare o primeiro antes de iniciar o segundo.
+> **Note:** Both projects use the same ports, so run only one at a time, or stop the first one before starting the second.
 
-### Parar os serviços
+### Stop the services
 
 ```bash
 docker compose down
 ```
 
-Para remover também os volumes (dados do banco):
+To also remove volumes (database data):
 
 ```bash
 docker compose down -v
@@ -109,9 +109,9 @@ docker compose down -v
 
 ---
 
-## Portas dos Serviços
+## Service Ports
 
-| Serviço          | Porta Host |
+| Service          | Host Port  |
 | ---------------- | ---------- |
 | stock-service    | `3000`     |
 | orders-service   | `3001`     |
@@ -122,9 +122,9 @@ docker compose down -v
 
 ---
 
-## Testando o Fluxo
+## Testing the Flow
 
-Após subir os containers, inicie o fluxo de pagamento:
+After starting the containers, trigger the payment flow:
 
 ```bash
 curl -X POST http://localhost:3001/v1/orders/payments \
@@ -135,7 +135,7 @@ curl -X POST http://localhost:3001/v1/orders/payments \
   }'
 ```
 
-Para simular uma **falha no pagamento** (compensação), use o UUID de método de pagamento de teste:
+To simulate a **payment failure** (compensation), use the test payment method UUID:
 
 ```bash
 curl -X POST http://localhost:3001/v1/orders/payments \
@@ -153,7 +153,7 @@ curl -X POST http://localhost:3001/v1/orders/payments \
 - **Runtime:** Node.js
 - **Framework:** NestJS
 - **ORM:** TypeORM
-- **Banco de Dados:** PostgreSQL 18
+- **Database:** PostgreSQL 18
 - **Message Broker:** Redis 8
-- **Gerenciador de Pacotes:** pnpm
-- **Containerização:** Docker Compose
+- **Package Manager:** pnpm
+- **Containerization:** Docker Compose

@@ -1,39 +1,39 @@
-# Choreographed Saga — Fluxo de Eventos
+# Choreographed Saga — Event Flow
 
-## Visão Geral
+## Overview
 
-Este projeto implementa o padrão **Saga Coreografada** para processar pagamentos de pedidos em uma arquitetura de microsserviços. Cada serviço reage a eventos publicados por outros serviços via **Redis Pub/Sub**, sem a presença de um orquestrador central.
+This project implements the **Choreographed Saga** pattern for processing order payments in a microservices architecture. Each service reacts to events published by other services via **Redis Pub/Sub**, without the presence of a central orchestrator.
 
-### Serviços
+### Services
 
-| Serviço              | Porta | Responsabilidade                   |
-| -------------------- | ----- | ---------------------------------- |
-| **orders-service**   | 3000  | Gerencia pedidos e coordena status |
-| **stock-service**    | 3001  | Reserva e controle de estoque      |
-| **payments-service** | 3002  | Processamento de pagamentos        |
-| **loyalty-service**  | 3003  | Programa de pontos de fidelidade   |
+| Service              | Port | Responsibility                     |
+| -------------------- | ---- | ---------------------------------- |
+| **orders-service**   | 3000 | Manages orders and coordinates status |
+| **stock-service**    | 3001 | Stock reservation and inventory control |
+| **payments-service** | 3002 | Payment processing                 |
+| **loyalty-service**  | 3003 | Loyalty points program             |
 
-### Canais Redis Pub/Sub
+### Redis Pub/Sub Channels
 
-| Canal            | Produtor         | Consumidores                                   |
+| Channel          | Producer         | Consumers                                      |
 | ---------------- | ---------------- | ---------------------------------------------- |
 | `order-events`   | orders-service   | stock-service                                  |
 | `stock-events`   | stock-service    | orders-service, payments-service               |
 | `payment-events` | payments-service | orders-service, stock-service, loyalty-service |
 
-### Tipos de Eventos
+### Event Types
 
-| Evento                | Canal          | Descrição                    |
-| --------------------- | -------------- | ---------------------------- |
-| `START_ORDER_PAYMENT` | order-events   | Início do fluxo de pagamento |
-| `RESERVATION_SUCCEED` | stock-events   | Itens reservados com sucesso |
-| `RESERVATION_FAILED`  | stock-events   | Falha na reserva de itens    |
-| `PAYMENT_SUCCEED`     | payment-events | Pagamento aprovado           |
-| `PAYMENT_FAILED`      | payment-events | Pagamento recusado           |
+| Event                 | Channel        | Description                    |
+| --------------------- | -------------- | ------------------------------ |
+| `START_ORDER_PAYMENT` | order-events   | Payment flow start             |
+| `RESERVATION_SUCCEED` | stock-events   | Items reserved successfully    |
+| `RESERVATION_FAILED`  | stock-events   | Item reservation failed        |
+| `PAYMENT_SUCCEED`     | payment-events | Payment approved               |
+| `PAYMENT_FAILED`      | payment-events | Payment declined               |
 
 ---
 
-## Diagrama — Fluxo Completo (Happy Path + Compensações)
+## Diagram — Full Flow (Happy Path + Compensations)
 
 ```mermaid
 sequenceDiagram
@@ -45,123 +45,123 @@ sequenceDiagram
     participant Payments as Payments Service
     participant Loyalty as Loyalty Service
 
-    Note over Client,Loyalty: ═══ HAPPY PATH — Pagamento com Sucesso ═══
+    Note over Client,Loyalty: ═══ HAPPY PATH — Successful Payment ═══
 
     Client->>Orders: POST /api/v1/orders/payments<br/>{orderUuid, paymentMethodUuid}
     activate Orders
-    Orders->>Orders: Valida pedido (status = waiting_payment)
-    Orders->>Redis: Publica START_ORDER_PAYMENT<br/>no canal "order-events"
-    Orders->>Orders: Atualiza status → reserving_items
+    Orders->>Orders: Validate order (status = waiting_payment)
+    Orders->>Redis: Publish START_ORDER_PAYMENT<br/>on channel "order-events"
+    Orders->>Orders: Update status → reserving_items
     Orders-->>Client: 200 OK
     deactivate Orders
 
-    Redis->>Stock: Consome START_ORDER_PAYMENT
+    Redis->>Stock: Consume START_ORDER_PAYMENT
     activate Stock
-    Note over Stock: Aguarda 10s (simulação)
-    Stock->>Stock: Para cada item do pedido:<br/>- Lock pessimista no item<br/>- Decrementa quantityInStock<br/>- Cria registro item_reservation
-    Stock->>Redis: Publica RESERVATION_SUCCEED<br/>no canal "stock-events"
+    Note over Stock: Wait 10s (simulated)
+    Stock->>Stock: For each order item:<br/>- Pessimistic lock on item<br/>- Decrement quantityInStock<br/>- Create item_reservation record
+    Stock->>Redis: Publish RESERVATION_SUCCEED<br/>on channel "stock-events"
     deactivate Stock
 
-    par Consumidores de stock-events
-        Redis->>Orders: Consome RESERVATION_SUCCEED
+    par stock-events consumers
+        Redis->>Orders: Consume RESERVATION_SUCCEED
         activate Orders
-        Orders->>Orders: Atualiza status → payment_processing
+        Orders->>Orders: Update status → payment_processing
         deactivate Orders
     and
-        Redis->>Payments: Consome RESERVATION_SUCCEED
+        Redis->>Payments: Consume RESERVATION_SUCCEED
         activate Payments
-        Note over Payments: Aguarda 10s (simulação)
-        Payments->>Payments: Cria payment (status = pending)
-        Payments->>Payments: Processa pagamento → completed
-        Payments->>Redis: Publica PAYMENT_SUCCEED<br/>no canal "payment-events"
+        Note over Payments: Wait 10s (simulated)
+        Payments->>Payments: Create payment (status = pending)
+        Payments->>Payments: Process payment → completed
+        Payments->>Redis: Publish PAYMENT_SUCCEED<br/>on channel "payment-events"
         deactivate Payments
     end
 
-    par Consumidores de payment-events
-        Redis->>Orders: Consome PAYMENT_SUCCEED
+    par payment-events consumers
+        Redis->>Orders: Consume PAYMENT_SUCCEED
         activate Orders
-        Orders->>Orders: Atualiza status → payment_succeeded ✅
+        Orders->>Orders: Update status → payment_succeeded ✅
         deactivate Orders
     and
-        Redis->>Stock: Consome PAYMENT_SUCCEED
+        Redis->>Stock: Consume PAYMENT_SUCCEED
         activate Stock
-        Stock->>Stock: Cria registros item_delivery<br/>(com delivery_forecast)
-        Stock->>Stock: Remove registros item_reservation
+        Stock->>Stock: Create item_delivery records<br/>(with delivery_forecast)
+        Stock->>Stock: Remove item_reservation records
         deactivate Stock
     and
-        Redis->>Loyalty: Consome PAYMENT_SUCCEED
+        Redis->>Loyalty: Consume PAYMENT_SUCCEED
         activate Loyalty
-        Loyalty->>Loyalty: Calcula pontos = floor(totalPrice × 0.25)
-        Loyalty->>Loyalty: Cria registro loyalty_point
+        Loyalty->>Loyalty: Calculate points = floor(totalPrice × 0.25)
+        Loyalty->>Loyalty: Create loyalty_point record
         deactivate Loyalty
     end
 
-    Note over Client,Loyalty: ═══ COMPENSAÇÃO 1 — Falha na Reserva de Itens ═══
+    Note over Client,Loyalty: ═══ COMPENSATION 1 — Item Reservation Failed ═══
 
     Client->>Orders: POST /api/v1/orders/payments
     activate Orders
-    Orders->>Redis: Publica START_ORDER_PAYMENT
+    Orders->>Redis: Publish START_ORDER_PAYMENT
     Orders->>Orders: Status → reserving_items
     deactivate Orders
 
-    Redis->>Stock: Consome START_ORDER_PAYMENT
+    Redis->>Stock: Consume START_ORDER_PAYMENT
     activate Stock
-    Stock->>Stock: Item sem estoque suficiente
-    Stock->>Stock: Rollback da transação (DB)
-    Stock->>Redis: Publica RESERVATION_FAILED<br/>no canal "stock-events"<br/>{failedItems}
+    Stock->>Stock: Insufficient stock for item
+    Stock->>Stock: Transaction rollback (DB)
+    Stock->>Redis: Publish RESERVATION_FAILED<br/>on channel "stock-events"<br/>{failedItems}
     deactivate Stock
 
-    Redis->>Orders: Consome RESERVATION_FAILED
+    Redis->>Orders: Consume RESERVATION_FAILED
     activate Orders
-    Orders->>Orders: Atualiza status → unavailable_items ❌
+    Orders->>Orders: Update status → unavailable_items ❌
     deactivate Orders
-    Note over Payments: Não reage a RESERVATION_FAILED
+    Note over Payments: Does not react to RESERVATION_FAILED
 
-    Note over Client,Loyalty: ═══ COMPENSAÇÃO 2 — Falha no Pagamento ═══
+    Note over Client,Loyalty: ═══ COMPENSATION 2 — Payment Failed ═══
 
-    Note over Stock: (Após RESERVATION_SUCCEED bem-sucedido)
+    Note over Stock: (After successful RESERVATION_SUCCEED)
 
-    Redis->>Payments: Consome RESERVATION_SUCCEED
+    Redis->>Payments: Consume RESERVATION_SUCCEED
     activate Payments
-    Payments->>Payments: Cria payment (status = pending)
-    Payments->>Payments: Pagamento recusado → failed
-    Payments->>Redis: Publica PAYMENT_FAILED<br/>no canal "payment-events"<br/>{reason}
+    Payments->>Payments: Create payment (status = pending)
+    Payments->>Payments: Payment declined → failed
+    Payments->>Redis: Publish PAYMENT_FAILED<br/>on channel "payment-events"<br/>{reason}
     deactivate Payments
 
-    par Consumidores de payment-events (compensação)
-        Redis->>Orders: Consome PAYMENT_FAILED
+    par payment-events consumers (compensation)
+        Redis->>Orders: Consume PAYMENT_FAILED
         activate Orders
-        Orders->>Orders: Atualiza status → payment_failed ❌
+        Orders->>Orders: Update status → payment_failed ❌
         deactivate Orders
     and
-        Redis->>Stock: Consome PAYMENT_FAILED
+        Redis->>Stock: Consume PAYMENT_FAILED
         activate Stock
-        Stock->>Stock: Restaura quantityInStock<br/>(incrementa de volta)
-        Stock->>Stock: Remove registros item_reservation
+        Stock->>Stock: Restore quantityInStock<br/>(increment back)
+        Stock->>Stock: Remove item_reservation records
         deactivate Stock
     end
-    Note over Loyalty: Não reage a PAYMENT_FAILED
+    Note over Loyalty: Does not react to PAYMENT_FAILED
 ```
 
 ---
 
-## Diagrama — Matriz de Publicação e Assinatura
+## Diagram — Publish and Subscribe Matrix
 
 ```mermaid
 flowchart LR
-    subgraph Producers["Produtores"]
+    subgraph Producers["Producers"]
         O[Orders Service]
         S[Stock Service]
         P[Payments Service]
     end
 
-    subgraph Channels["Canais Redis"]
+    subgraph Channels["Redis Channels"]
         OE[order-events]
         SE[stock-events]
         PE[payment-events]
     end
 
-    subgraph Consumers["Consumidores"]
+    subgraph Consumers["Consumers"]
         O2[Orders Service]
         S2[Stock Service]
         P2[Payments Service]
@@ -182,19 +182,19 @@ flowchart LR
 
 ---
 
-## Diagrama — Ciclo de Vida do Status do Pedido
+## Diagram — Order Status Lifecycle
 
 ```mermaid
 stateDiagram-v2
-    [*] --> waiting_payment: Pedido criado
+    [*] --> waiting_payment: Order created
 
-    waiting_payment --> reserving_items: START_ORDER_PAYMENT publicado
+    waiting_payment --> reserving_items: START_ORDER_PAYMENT published
 
-    reserving_items --> unavailable_items: RESERVATION_FAILED recebido
-    reserving_items --> payment_processing: RESERVATION_SUCCEED recebido
+    reserving_items --> unavailable_items: RESERVATION_FAILED received
+    reserving_items --> payment_processing: RESERVATION_SUCCEED received
 
-    payment_processing --> payment_failed: PAYMENT_FAILED recebido
-    payment_processing --> payment_succeeded: PAYMENT_SUCCEED recebido
+    payment_processing --> payment_failed: PAYMENT_FAILED received
+    payment_processing --> payment_succeeded: PAYMENT_SUCCEED received
 
     unavailable_items --> [*]
     payment_failed --> [*]
@@ -203,57 +203,57 @@ stateDiagram-v2
 
 ---
 
-## Fluxo Detalhado Passo a Passo
+## Detailed Step-by-Step Flow
 
-### 1. Início — Cliente Solicita Pagamento
+### 1. Start — Client Requests Payment
 
-O cliente faz uma requisição `POST /api/v1/orders/payments` com `orderUuid` e `paymentMethodUuid`. O **orders-service** valida que o pedido existe e tem status `waiting_payment`, publica o evento `START_ORDER_PAYMENT` no canal `order-events` e atualiza o status do pedido para `reserving_items`.
+The client sends a `POST /api/v1/orders/payments` request with `orderUuid` and `paymentMethodUuid`. The **orders-service** validates that the order exists and has status `waiting_payment`, publishes the `START_ORDER_PAYMENT` event on the `order-events` channel, and updates the order status to `reserving_items`.
 
-### 2. Reserva de Itens
+### 2. Item Reservation
 
-O **stock-service** consome o evento `START_ORDER_PAYMENT`. Para cada item do pedido, dentro de uma transação com lock pessimista:
+The **stock-service** consumes the `START_ORDER_PAYMENT` event. For each order item, within a transaction with a pessimistic lock:
 
-- Verifica se há estoque suficiente (`quantityInStock >= quantidade solicitada`)
-- Decrementa `quantityInStock`
-- Cria um registro `item_reservation`
+- Checks if there is sufficient stock (`quantityInStock >= requested quantity`)
+- Decrements `quantityInStock`
+- Creates an `item_reservation` record
 
-**Sucesso:** Publica `RESERVATION_SUCCEED` no canal `stock-events`.  
-**Falha:** Faz rollback de toda a transação e publica `RESERVATION_FAILED` com a lista de itens indisponíveis.
+**Success:** Publishes `RESERVATION_SUCCEED` on the `stock-events` channel.  
+**Failure:** Rolls back the entire transaction and publishes `RESERVATION_FAILED` with the list of unavailable items.
 
-### 3. Processamento do Pagamento
+### 3. Payment Processing
 
-O **payments-service** consome `RESERVATION_SUCCEED` do canal `stock-events`. Cria um registro de pagamento com status `pending` e processa o pagamento:
+The **payments-service** consumes `RESERVATION_SUCCEED` from the `stock-events` channel. Creates a payment record with status `pending` and processes the payment:
 
-- Verifica duplicidade (mesmo `userUuid` + `orderUuid` + `paymentMethodUuid`)
-- Se o `paymentMethodUuid` é o UUID de teste de falha (`ff1a8411-b443-408f-8012-fa62eb9067bd`), marca como `failed`
-- Caso contrário, marca como `completed`
+- Checks for duplicates (same `userUuid` + `orderUuid` + `paymentMethodUuid`)
+- If `paymentMethodUuid` is the failure test UUID (`ff1a8411-b443-408f-8012-fa62eb9067bd`), marks it as `failed`
+- Otherwise, marks it as `completed`
 
-**Sucesso:** Publica `PAYMENT_SUCCEED` no canal `payment-events`.  
-**Falha:** Publica `PAYMENT_FAILED` com o motivo.
+**Success:** Publishes `PAYMENT_SUCCEED` on the `payment-events` channel.  
+**Failure:** Publishes `PAYMENT_FAILED` with the reason.
 
-### 4. Finalização — Reações ao Resultado do Pagamento
+### 4. Finalization — Reactions to Payment Result
 
-#### Pagamento com Sucesso (`PAYMENT_SUCCEED`)
+#### Successful Payment (`PAYMENT_SUCCEED`)
 
-| Serviço             | Ação                                                                                      |
-| ------------------- | ----------------------------------------------------------------------------------------- |
-| **orders-service**  | Atualiza status do pedido → `payment_succeeded`                                           |
-| **stock-service**   | Cria registros `item_delivery` com previsão de entrega e remove os `item_reservation`     |
-| **loyalty-service** | Calcula pontos de fidelidade (`floor(totalPrice × 0.25)`) e cria registro `loyalty_point` |
+| Service             | Action                                                                                       |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| **orders-service**  | Updates order status → `payment_succeeded`                                                   |
+| **stock-service**   | Creates `item_delivery` records with delivery forecast and removes `item_reservation` records |
+| **loyalty-service** | Calculates loyalty points (`floor(totalPrice × 0.25)`) and creates `loyalty_point` record    |
 
-#### Pagamento com Falha (`PAYMENT_FAILED`)
+#### Failed Payment (`PAYMENT_FAILED`)
 
-| Serviço             | Ação (Compensação)                                        |
-| ------------------- | --------------------------------------------------------- |
-| **orders-service**  | Atualiza status do pedido → `payment_failed`              |
-| **stock-service**   | Restaura `quantityInStock` e remove os `item_reservation` |
-| **loyalty-service** | Nenhuma ação                                              |
+| Service             | Action (Compensation)                                          |
+| ------------------- | -------------------------------------------------------------- |
+| **orders-service**  | Updates order status → `payment_failed`                        |
+| **stock-service**   | Restores `quantityInStock` and removes `item_reservation` records |
+| **loyalty-service** | No action                                                      |
 
 ---
 
-## Infraestrutura
+## Infrastructure
 
 - **Message Broker:** Redis 7 (Pub/Sub via `ioredis`)
-- **Banco de Dados:** PostgreSQL 17 (um banco por serviço)
-- **Framework:** NestJS com TypeORM
-- **Containerização:** Docker Compose
+- **Database:** PostgreSQL 17 (one database per service)
+- **Framework:** NestJS with TypeORM
+- **Containerization:** Docker Compose
